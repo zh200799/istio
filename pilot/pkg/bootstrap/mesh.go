@@ -30,6 +30,7 @@ import (
 func (s *Server) initMeshConfiguration(args *PilotArgs, fileWatcher filewatcher.FileWatcher) {
 	log.Info("initializing mesh configuration")
 	defer func() {
+		// s.environment.Watcher!=nil ,打印出watcher
 		if s.environment.Watcher != nil {
 			meshdump, _ := gogoprotomarshal.ToJSONWithIndent(s.environment.Mesh(), "    ")
 			log.Infof("mesh configuration: %s", meshdump)
@@ -41,6 +42,7 @@ func (s *Server) initMeshConfiguration(args *PilotArgs, fileWatcher filewatcher.
 
 	var err error
 	if args.MeshConfigFile != "" {
+		// 自定义配置
 		s.environment.Watcher, err = mesh.NewWatcher(fileWatcher, args.MeshConfigFile)
 		if err == nil {
 			return
@@ -50,6 +52,7 @@ func (s *Server) initMeshConfiguration(args *PilotArgs, fileWatcher filewatcher.
 
 	// Config file either wasn't specified or failed to load - use a default mesh.
 	meshConfig := mesh.DefaultMeshConfig()
+	// 使用默认配置生成 watcher
 	s.environment.Watcher = mesh.NewFixedWatcher(&meshConfig)
 }
 

@@ -69,20 +69,21 @@ var (
 
 			spiffe.SetTrustDomain(spiffe.DetermineTrustDomain(serverArgs.RegistryOptions.KubeOptions.TrustDomain, hasKubeRegistry()))
 
-			// Create the stop channel for all of the servers.
+			// 创建一个用于停止服务的通道 stop,类型为struct.
 			stop := make(chan struct{})
 
-			// Create the server for the discovery service.
+			// 创建一个server,用于进行 服务发现
 			discoveryServer, err := bootstrap.NewServer(serverArgs)
 			if err != nil {
 				return fmt.Errorf("failed to create discovery service: %v", err)
 			}
 
-			// Start the server
+			// 启动这个server, 将结束channel带入
 			if err := discoveryServer.Start(stop); err != nil {
 				return fmt.Errorf("failed to start discovery service: %v", err)
 			}
 
+			// 将stop chan 与 系统信号关联
 			cmd.WaitSignal(stop)
 			// Wait until we shut down. In theory this could block forever; in practice we will get
 			// forcibly shut down after 30s in Kubernetes.

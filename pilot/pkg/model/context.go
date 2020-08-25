@@ -94,6 +94,7 @@ func (e *Environment) GetDiscoveryAddress() (host.Name, string, error) {
 	if e.Mesh().DefaultConfig != nil {
 		proxyConfig = *e.Mesh().DefaultConfig
 	}
+	// 得到hostname & port
 	hostname, port, err := net.SplitHostPort(proxyConfig.DiscoveryAddress)
 	if err != nil {
 		return "", "", fmt.Errorf("invalid Istiod Address: %s, %v", proxyConfig.DiscoveryAddress, err)

@@ -184,7 +184,7 @@ func NewServer(args *PilotArgs) (*Server, error) {
 		clusterID:       getClusterID(args),
 		environment:     e,
 		EnvoyXdsServer:  xds.NewDiscoveryServer(e, args.Plugins),
-		fileWatcher:     filewatcher.NewWatcher(),
+		fileWatcher:     filewatcher.NewWatcher(), // 监控mesh的配置,网络,证书
 		httpMux:         http.NewServeMux(),
 		readinessProbes: make(map[string]readinessProbe),
 	}
@@ -201,8 +201,10 @@ func NewServer(args *PilotArgs) (*Server, error) {
 		)
 	}
 
+	// 开启RPC时间记录
 	prometheus.EnableHandlingTimeHistogram()
 
+	// 初始化mesh配置信息(根据args判断是默认还是自定义mesh配置)
 	s.initMeshConfiguration(args, s.fileWatcher)
 
 	// Apply the arguments to the configuration.
@@ -210,39 +212,47 @@ func NewServer(args *PilotArgs) (*Server, error) {
 		return nil, fmt.Errorf("error initializing kube client: %v", err)
 	}
 
+	//初始化到k8s集群客户端 s.kubeClient
 	s.initMeshNetworks(args, s.fileWatcher)
+	//初始化mesh
 	s.initMeshHandlers()
 
 	// Parse and validate Istiod Address.
+	// 校验和解析mesh hostname & port
 	istiodHost, _, err := e.GetDiscoveryAddress()
 	if err != nil {
 		return nil, err
 	}
 
+	// 初始化controller
 	if err := s.initControllers(args); err != nil {
 		return nil, err
 	}
 
+	// 初始化xds
 	s.initGenerators()
+	// 初始化jwt策略  json web token
 	s.initJwtPolicy()
 
 	// Options based on the current 'defaults' in istio.
+	// 设置信任域及namespace
 	caOpts := &CAOptions{
 		TrustDomain: s.environment.Mesh().TrustDomain,
 		Namespace:   args.Namespace,
 	}
 
-	// CA signing certificate must be created first if needed.
+	// CA证书创建
 	if err := s.maybeCreateCA(caOpts); err != nil {
 		return nil, err
 	}
 
-	// Create Istiod certs and setup watches.
+	// 初始化istiod控制平面证书
 	if err := s.initIstiodCerts(args, string(istiodHost)); err != nil {
 		return nil, err
 	}
 
 	// Initialize the SPIFFE peer cert verifier.
+	// 根据控制平面配置初始化SPIFFE
 	if err := s.setPeerCertVerifier(args.ServerOptions.TLSOptions); err != nil {
 		return nil, err
 	}

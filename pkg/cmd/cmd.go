@@ -27,6 +27,7 @@ import (
 )
 
 // WaitSignal awaits for SIGINT or SIGTERM and closes the channel
+// 监听系统信号量[syscall.SIGINT, syscall.SIGTERM], 监听到关注信号后会关闭stop chan
 func WaitSignal(stop chan struct{}) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
