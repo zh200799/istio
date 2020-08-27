@@ -173,6 +173,7 @@ type Server struct {
 }
 
 // NewServer creates a new Server instance based on the provided arguments.
+// 基于提供的参数args,创建新的server
 func NewServer(args *PilotArgs) (*Server, error) {
 	e := &model.Environment{
 		ServiceDiscovery: aggregate.NewController(),
@@ -214,7 +215,8 @@ func NewServer(args *PilotArgs) (*Server, error) {
 
 	//初始化到k8s集群客户端 s.kubeClient
 	s.initMeshNetworks(args, s.fileWatcher)
-	//初始化mesh
+
+	//初始化meshHandler
 	s.initMeshHandlers()
 
 	// Parse and validate Istiod Address.
@@ -263,8 +265,10 @@ func NewServer(args *PilotArgs) (*Server, error) {
 	}
 
 	// common https server for webhooks (e.g. injection, validation)
+	// 创建webhook
 	s.initSecureWebhookServer(args)
 
+	//通过inject.webhook
 	wh, err := s.initSidecarInjector(args)
 	if err != nil {
 		return nil, fmt.Errorf("error initializing sidecar injector: %v", err)
@@ -332,13 +336,13 @@ func getClusterID(args *PilotArgs) string {
 	return clusterID
 }
 
-// Start starts all components of the Pilot discovery service on the port specified in DiscoveryServerOptions.
-// If Port == 0, a port number is automatically chosen. Content serving is started by this method,
-// but is executed asynchronously. Serving can be canceled at any time by closing the provided stop channel.
+// 通过DiscoveryServerOptions上指定的端口启动Pilot中所有的服务发现组件
+// 如果端口为0,则自动选择一个端口用于启动方法
+// 由于是异步执行的,可以通过stop通道随时取消服务
 func (s *Server) Start(stop <-chan struct{}) error {
 	log.Infof("Staring Istiod Server with primary cluster %s", s.clusterID)
 
-	// Now start all of the components.
+	// 遍历执行Server中startFuncs方法
 	for _, fn := range s.startFuncs {
 		if err := fn(stop); err != nil {
 			return err
@@ -348,9 +352,11 @@ func (s *Server) Start(stop <-chan struct{}) error {
 	// the grpc server would be started before CA is registered. Listening should be last.
 	if s.SecureGrpcListener != nil {
 		go func() {
+			// 等待s中controller初始化完成, 如有异常则err!=nil,并在通道 stop中写入
 			if !s.waitForCacheSync(stop) {
 				return
 			}
+			// 启动secureGrpcServer
 			log.Infof("starting secure gRPC discovery service at %s", s.SecureGrpcListener.Addr())
 			if err := s.secureGrpcServer.Serve(s.SecureGrpcListener); err != nil {
 				log.Errorf("error from GRPC server: %v", err)
@@ -716,6 +722,8 @@ func (s *Server) addTerminatingStartFunc(fn startFunc) {
 }
 
 func (s *Server) waitForCacheSync(stop <-chan struct{}) bool {
+	// s.cachesSynced类型为 type InformerSynced func() bool,作用为判Server中3类controller是否都执行初始化完成
+	// cache.WaitForCacheSync(stop, s.cachesSynced)会调用s.cachesSynced中方法,无限循环调用,直到返回true
 	if !cache.WaitForCacheSync(stop, s.cachesSynced) {
 		log.Errorf("Failed waiting for cache sync")
 		return false
@@ -724,7 +732,7 @@ func (s *Server) waitForCacheSync(stop <-chan struct{}) bool {
 	return true
 }
 
-// cachesSynced checks whether caches have been synced.
+// 判断server中[configController,ServiceController,持有的kube中secretController]是否都已完成初始化
 func (s *Server) cachesSynced() bool {
 	if s.multicluster != nil && !s.multicluster.HasSynced() {
 		return false

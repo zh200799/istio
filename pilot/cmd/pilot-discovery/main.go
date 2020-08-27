@@ -62,11 +62,13 @@ var (
 		Args:  cobra.ExactArgs(0),
 		RunE: func(c *cobra.Command, args []string) error {
 			cmd.PrintFlags(c.Flags())
+			// 初始化istio日志子系统
 			if err := log.Configure(loggingOptions); err != nil {
 				return err
 			}
+			// 设置v2 无锁的日志记录器
 			grpclog.SetLoggerV2(grpclog.NewLoggerV2(ioutil.Discard, ioutil.Discard, ioutil.Discard))
-
+			// 设置Spiffe信任域, 如果在k8s环境下,'cluster.local'为默认信任域
 			spiffe.SetTrustDomain(spiffe.DetermineTrustDomain(serverArgs.RegistryOptions.KubeOptions.TrustDomain, hasKubeRegistry()))
 
 			// 创建一个用于停止服务的通道 stop,类型为struct.
