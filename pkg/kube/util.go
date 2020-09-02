@@ -45,17 +45,16 @@ func BuildClientCmd(kubeconfig, context string) clientcmd.ClientConfig {
 	if kubeconfig != "" {
 		info, err := os.Stat(kubeconfig)
 		if err != nil || info.Size() == 0 {
-			// If the specified kubeconfig doesn't exists / empty file / any other error
-			// from file stat, fall back to default
+			// 如果指定kubeconfig不存在/空文件/fileStat报错,则设置kubeconfig为空
 			kubeconfig = ""
 		}
 	}
 
-	//Config loading rules:
-	// 1. kubeconfig if it not empty string
-	// 2. In cluster config if running in-cluster
-	// 3. Config(s) in KUBECONFIG environment variable
-	// 4. Use $HOME/.kube/config
+	// 配置读取规则
+	// 1. 优先从kubeconfig读取
+	// 2. cluster环境下优先从cluster config读取
+	// 3. 从本地 KUBECONFIG的环境变量中读取
+	// 4. 从 $HOME/.kube/config中读取
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	loadingRules.DefaultClientConfig = &clientcmd.DefaultClientConfig
 	loadingRules.ExplicitPath = kubeconfig

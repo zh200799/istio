@@ -38,6 +38,7 @@ type clientFactory struct {
 }
 
 // newClientFactory creates a new util.Factory from the given clientcmd.ClientConfig.
+// 通过给定的clientConfig创建一个工厂
 func newClientFactory(clientConfig clientcmd.ClientConfig) util.Factory {
 	out := &clientFactory{
 		clientConfig: clientConfig,

@@ -60,6 +60,7 @@ var (
 		Use:   "discovery",
 		Short: "Start Istio proxy discovery service.",
 		Args:  cobra.ExactArgs(0),
+		// 定义错误回调方法
 		RunE: func(c *cobra.Command, args []string) error {
 			cmd.PrintFlags(c.Flags())
 			// 初始化istio日志子系统

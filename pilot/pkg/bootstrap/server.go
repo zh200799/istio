@@ -175,12 +175,13 @@ type Server struct {
 // NewServer creates a new Server instance based on the provided arguments.
 // 基于提供的参数args,创建新的server
 func NewServer(args *PilotArgs) (*Server, error) {
+	// 设置环境变量参数
 	e := &model.Environment{
 		ServiceDiscovery: aggregate.NewController(),
 		PushContext:      model.NewPushContext(),
 		DomainSuffix:     args.RegistryOptions.KubeOptions.DomainSuffix,
 	}
-
+	// 设置服务初始化参数
 	s := &Server{
 		clusterID:       getClusterID(args),
 		environment:     e,
@@ -189,11 +190,11 @@ func NewServer(args *PilotArgs) (*Server, error) {
 		httpMux:         http.NewServeMux(),
 		readinessProbes: make(map[string]readinessProbe),
 	}
-
+	// 设置服务关闭间隔
 	if args.ShutdownDuration == 0 {
 		s.shutdownDuration = 10 * time.Second // If not specified set to 10 seconds.
 	}
-
+	// 设置需要监控的控制面板命名空间
 	if args.RegistryOptions.KubeOptions.WatchedNamespaces != "" {
 		// Add the control-plane namespace to the list of watched namespaces.
 		args.RegistryOptions.KubeOptions.WatchedNamespaces = fmt.Sprintf("%s,%s",
@@ -411,6 +412,7 @@ func (s *Server) WaitUntilCompletion() {
 // initKubeClient creates the k8s client if running in an k8s environment.
 // This is determined by the presence of a kube registry, which
 // uses in-context k8s, or a config source of type k8s.
+// 如果在k8s环境下则创建k8s client envoy
 func (s *Server) initKubeClient(args *PilotArgs) error {
 	hasK8SConfigStore := false
 	if args.RegistryOptions.FileDir == "" {
@@ -425,6 +427,7 @@ func (s *Server) initKubeClient(args *PilotArgs) error {
 		}
 	}
 
+	// 存在k8s 配置中心 或 k8s注册中心
 	if hasK8SConfigStore || hasKubeRegistry(args.RegistryOptions.Registries) {
 		var err error
 		// Used by validation
